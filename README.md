@@ -31,7 +31,7 @@ pip install -r requirements.txt
 
 ```bash
 # 扫描以太坊地址
-python main.py scan 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
+python main.py scan 0x1234...abcd
 
 # 扫描 BSC 地址
 python main.py scan 0x1234...abcd --chain bsc
