@@ -9,7 +9,10 @@
 - **资金来源追踪** — 入账交易来源是否来自混币器、被盗资金地址
 - **风险评分** — 0-100 加权评分，四级风险等级（LOW / MEDIUM / HIGH / CRITICAL）
 - **多种输出格式** — 终端彩色报告、JSON、HTML 可视化报告
-- **API 诊断** — `check-api` 命令一键验证所有 API 配置是否正确
+- **Web 前端界面** — 浏览器中输入地址完成扫描，查看风险仪表盘、风险明细和支持链信息
+- **前端 API 配置** — 在 Web 页面中直接配置 / 删除 API Key，保存后无需重启即可生效
+- **报告导出** — 前端扫描完成后可一键导出 JSON、HTML、CSV 报告到本地
+- **API 诊断** — `check-api` 命令和 Web 页面均可验证 API 配置是否正确
 - **详细日志** — `--verbose` 模式查看每个 API 调用的详细过程
 
 ## 快速开始
@@ -53,6 +56,12 @@ python main.py update-blacklist
 
 # 查看支持的链
 python main.py chains
+
+# 启动 Web 前端页面
+python main.py web
+
+# 指定端口启动 Web 前端页面
+python main.py web --port 8000
 ```
 
 ### 命令行参数
@@ -67,6 +76,42 @@ python main.py chains
 | `check-api` | — | 诊断所有 API 配置，验证 Key 是否有效 |
 | `update-blacklist` | — | 强制更新本地黑名单缓存 |
 | `chains` | — | 列出所有支持的链 |
+| `web` | `--host, -h` | Web 服务监听地址，默认 `0.0.0.0` |
+| `web` | `--port, -p` | Web 服务端口，默认 `8000` |
+
+### Web 前端使用
+
+启动 Web 服务：
+
+```bash
+python main.py web --port 8000
+```
+
+浏览器打开：
+
+```text
+http://localhost:8000
+```
+
+Web 页面包含三个主要区域：
+
+- **扫描地址**：输入钱包地址，选择链，点击「开始扫描」后查看风险评分仪表盘、评分明细、黑名单命中、高风险合约、资金来源风险和操作建议
+- **API 状态**：查看 GoPlus、Etherscan、BscScan、ChainAbuse、ScamSniffer、OFAC 的可用状态，并可直接配置 API Key
+- **支持的链**：查看当前支持的链、Chain ID 以及 Etherscan V2 免费版支持情况
+
+扫描完成后，结果区域底部支持一键导出报告：
+
+| 格式 | 内容 | 适用场景 |
+|------|------|----------|
+| JSON | 完整原始扫描结果 | 程序处理、二次分析 |
+| HTML | 带样式的独立可视化报告 | 本地归档、浏览器查看、分享 |
+| CSV | 风险明细表格，支持 Excel 打开 | 表格分析、统计汇总 |
+
+导出文件会保存到浏览器默认下载目录，文件名格式为：
+
+```text
+risk-report_{链}_{地址前10位}_{时间戳}.{扩展名}
+```
 
 ### 支持的链
 
@@ -87,6 +132,33 @@ python main.py chains
 
 ### 配置方式
 
+支持两种配置方式：
+
+1. 在 Web 页面中配置（推荐给普通用户）
+2. 手动编辑项目根目录下的 `.env` 文件
+
+#### 方式一：Web 页面配置
+
+启动 Web 服务后打开浏览器：
+
+```bash
+python main.py web --port 8000
+```
+
+进入页面中的 **API 状态** 标签页，在 **API Key 配置** 区域填写：
+
+- `ETHERSCAN_API_KEY`：Etherscan V2 API Key
+- `BSCSCAN_API_KEY`：BscScan API Key
+- `CHAINABUSE_API_KEY`：ChainAbuse API Key
+
+点击「保存配置」后，配置会写入项目根目录的 `.env` 文件，并同步到当前运行中的服务进程，**无需重启 Web 服务即可生效**。
+
+页面中也可以删除已配置的 Key。删除后同样会更新 `.env` 文件，并立即影响后续扫描。
+
+> **安全提示**：Web 页面只显示脱敏后的 Key，例如 `M2VD****N7SE`。不要把 Web 服务暴露到公网环境中，否则别人也可能访问配置页面。
+
+#### 方式二：手动编辑 `.env`
+
 在项目根目录创建 `.env` 文件：
 
 ```bash
@@ -103,7 +175,9 @@ CHAINABUSE_API_KEY=your_chainabuse_api_key
 
 ### 验证 API 配置
 
-配置完成后，运行诊断命令验证所有 API 是否正常：
+配置完成后，可以通过命令行或 Web 页面验证所有 API 是否正常。
+
+命令行方式：
 
 ```bash
 python main.py check-api
@@ -128,6 +202,14 @@ Summary:
   ! BscScan API key is not configured - BSC chain scanning will be limited
   ! ChainAbuse API key is not configured - community reports will be skipped
 ```
+
+Web 页面方式：
+
+```bash
+python main.py web --port 8000
+```
+
+打开 `http://localhost:8000`，进入 **API 状态** 标签页即可查看 API 可用状态。Web 端状态检查采用并发请求，Etherscan / BscScan / ChainAbuse / GoPlus 会同时检查；ScamSniffer 和 OFAC 使用本地缓存文件状态判断，避免每次下载大型黑名单文件。
 
 也可以在扫描时加 `--verbose` 查看每个 API 请求的详细日志：
 
@@ -252,6 +334,24 @@ python main.py scan 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --verbose
 └──────────────────────────────────────────────────────────────┘
 ```
 
+### Web UI 架构
+
+Web 前端采用 FastAPI + 原生 HTML/CSS/JavaScript 实现，无需 Node.js、npm 或前端构建步骤。
+
+```text
+浏览器
+  ├── GET /                         → 返回 index.html
+  ├── GET /static/style.css         → 前端样式
+  ├── GET /static/app.js            → 前端交互逻辑
+  ├── POST /api/scan                → 执行地址扫描，返回 AddressRiskReport JSON
+  ├── GET /api/check-api            → 并发检查 API 状态
+  ├── GET /api/chains               → 返回支持的链列表
+  ├── GET /api/config               → 返回 API Key 配置状态（脱敏）
+  └── POST /api/config              → 保存 / 删除 API Key 到 .env
+```
+
+前端报告导出完全在浏览器端完成，使用 `Blob` 和 `URL.createObjectURL` 生成本地下载文件，不会把报告额外上传到任何服务。
+
 ### Etherscan API 路由策略
 
 Etherscan V2 API 统一了多链入口，但免费版并非所有链都可用。`EtherscanClient` 实现了智能路由：
@@ -274,6 +374,12 @@ wallet-risk-scanner/
 ├── main.py                           # 入口文件
 ├── requirements.txt                  # 依赖
 ├── .env.example                      # API Key 配置模板
+├── web/
+│   ├── server.py                     # FastAPI Web 服务与前端 API
+│   └── static/
+│       ├── index.html                # Web 前端页面
+│       ├── style.css                 # 前端样式
+│       └── app.js                    # 前端交互、扫描、配置、导出逻辑
 ├── scanner/
 │   ├── cli.py                        # CLI 命令定义（typer）
 │   ├── config.py                     # 配置管理（链配置、API Key、URL）
@@ -284,7 +390,7 @@ wallet-risk-scanner/
 │   │   ├── fund_tracing.py           #   资金来源追踪引擎
 │   │   └── risk_scorer.py            #   风险评分引擎
 │   ├── apis/                         # API 客户端封装
-│  │   ├── goplus.py                 #   GoPlus Security SDK 封装
+│   │   ├── goplus.py                 #   GoPlus Security SDK 封装
 │   │   ├── etherscan.py              #   Etherscan V2 + V1 fallback
 │   │   └── chainabuse.py             #   ChainAbuse API
 │   ├── data/                         # 数据加载与缓存
@@ -300,6 +406,9 @@ wallet-risk-scanner/
 │       └── log.py                    #   日志工具（verbose 模式）
 ├── data/
 │   ├── blacklists/                   # 本地黑名单缓存（自动生成）
+│   │   ├── scamsniffer_address.json  # ScamSniffer 地址缓存
+│   │   ├── scamsniffer_domains.json  # ScamSniffer 域名缓存
+│   │   └── ofac_addresses.json       # OFAC 地址缓存
 │   └── known_contracts/              # 已知合约地址数据
 │       ├── tornado_cash.json
 │       └── hacked_contracts.json
@@ -416,12 +525,27 @@ AddressRiskReport
 
 ### 黑名单缓存机制
 
-`BlacklistLoader` 实现了本地文件缓存：
+`BlacklistLoader` 实现了本地文件缓存，缓存目录为：
+
+```text
+data/blacklists/
+```
+
+主要缓存文件包括：
+
+```text
+data/blacklists/scamsniffer_address.json
+data/blacklists/scamsniffer_domains.json
+data/blacklists/ofac_addresses.json
+```
+
+缓存规则：
 
 - 首次运行时从远程下载 JSON/CSV 数据到 `data/blacklists/` 目录
 - 后续运行检查文件修改时间，超过 24 小时自动重新下载
 - 可通过 `python main.py update-blacklist` 强制更新
 - 网络不可用时使用本地缓存数据
+- Web 页面中的 API 状态检查会读取这些缓存文件的状态，避免每次请求都下载 ScamSniffer / OFAC 的完整数据
 
 ## 输出示例
 
@@ -480,6 +604,16 @@ AddressRiskReport
 }
 ```
 
+### Web 前端导出报告
+
+在 Web 页面完成扫描后，结果区域底部会显示「📥 导出报告」按钮组：
+
+- **JSON**：导出完整原始扫描数据
+- **HTML**：导出带暗色主题样式的独立报告文件
+- **CSV**：导出风险明细表格，已加入 BOM 头，Excel 打开中文不乱码
+
+导出的文件默认进入浏览器下载目录。
+
 ### Verbose 日志示例
 
 ```bash
@@ -513,7 +647,9 @@ python -m pytest tests/ -v
 
 - 本工具**仅读取链上公开数据**，绝不请求私钥或助记词
 - 所有 API Key 通过 `.env` 文件管理，不硬编码在代码中
+- Web 页面配置 API Key 时只展示脱敏值，但不要将 Web 服务暴露到公网
 - 用户输入的地址仅用于查询，不记录不上传
+- 前端导出报告完全在浏览器本地生成，不会额外上传
 - 遵守各 API 的调用频率限制
 
 ## 技术栈
@@ -524,7 +660,9 @@ python -m pytest tests/ -v
 | CLI | typer | 现代 CLI 框架，自带帮助文档 |
 | 终端输出 | rich | 彩色表格、面板、进度条 |
 | 安全检测 | goplus SDK | GoPlus Security 官方 Python SDK（非 REST API） |
-| 区块浏览器 | requests | Etherscan V2 API + V1 fallback |
+| 区块浏览器 | requests / httpx | Etherscan V2 API + V1 fallback；Web API 状态检查使用 httpx 并发请求 |
+| Web 后端 | FastAPI + uvicorn | 提供前端页面和 REST API |
+| Web 前端 | HTML / CSS / JavaScript | 原生单页应用，无需构建步骤 |
 | 数据模型 | pydantic v2 | 数据验证与序列化 |
-| 配置管理 | python-dotenv | .env 文件加载 |
+| 配置管理 | python-dotenv | .env 文件加载，Web 页面可写入配置 |
 | 测试 | pytest | 单元测试 |
