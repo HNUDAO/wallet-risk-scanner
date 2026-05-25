@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wallet Risk Scanner</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <nav>
+    <div class="logo">🔍 Wallet Risk Scanner</div>
+    <div class="nav-tabs">
+      <button class="tab-btn active" data-tab="scan">扫描</button>
+      <button class="tab-btn" data-tab="api-status">API 状态</button>
+      <button class="tab-btn" data-tab="chains">支持的链</button>
+    </div>
+  </nav>
+
+  <section id="tab-scan" class="tab-content active">
+    <div class="scan-form">
+      <input type="text" id="address-input" placeholder="输入钱包地址 (0x...)" spellcheck="false" autocomplete="off" />
+      <select id="chain-select"></select>
+      <button id="scan-btn">开始扫描</button>
+    </div>
+
+    <div id="scan-loading" class="hidden">
+      <div class="spinner"></div>
+      <p>正在扫描，请稍候...</p>
+      <div class="scan-steps">
+        <div class="step" id="step-blacklist">黑名单检测</div>
+        <div class="step" id="step-contract">合约风险分析</div>
+        <div class="step" id="step-fund">资金来源追踪</div>
+      </div>
+    </div>
+
+    <div id="scan-error" class="hidden"></div>
+
+    <div id="scan-result" class="hidden">
+      <div class="address-info">
+        <span id="result-address"></span>
+        <span id="result-chain"></span>
+      </div>
+
+      <div class="score-gauge">
+        <svg viewBox="0 0 200 200">
+          <circle class="gauge-bg" cx="100" cy="100" r="85" />
+          <circle class="gauge-fill" cx="100" cy="100" r="85" />
+        </svg>
+        <div class="gauge-text">
+          <div class="gauge-score" id="gauge-score">0</div>
+          <div class="gauge-label" id="gauge-label">LOW</div>
+        </div>
+      </div>
+
+      <div class="score-breakdown">
+        <div class="breakdown-item">
+          <span>黑名单</span>
+          <div class="breakdown-bar"><div class="breakdown-fill" id="breakdown-blacklist"></div></div>
+          <span id="breakdown-blacklist-score">0</span>
+        </div>
+        <div class="breakdown-item">
+          <span>合约风险</span>
+          <div class="breakdown-bar"><div class="breakdown-fill" id="breakdown-contract"></div></div>
+          <span id="breakdown-contract-score">0</span>
+        </div>
+        <div class="breakdown-item">
+          <span>资金来源</span>
+          <div class="breakdown-bar"><div class="breakdown-fill" id="breakdown-fund"></div></div>
+          <span id="breakdown-fund-score">0</span>
+        </div>
+      </div>
+
+      <div class="risk-sections">
+        <div class="risk-section" id="blacklist-section">
+          <h3>⚠️ 黑名单命中</h3>
+          <div class="risk-table-container" id="blacklist-table"></div>
+        </div>
+        <div class="risk-section" id="contract-section">
+          <h3>⚠️ 高风险合约</h3>
+          <div class="risk-table-container" id="contract-table"></div>
+        </div>
+        <div class="risk-section" id="fund-section">
+          <h3>⚠️ 资金来源风险</h3>
+          <div class="risk-table-container" id="fund-table"></div>
+        </div>
+      </div>
+
+      <div class="recommendation" id="recommendation"></div>
+
+      <div class="export-bar" id="export-bar">
+        <span class="export-label">📥 导出报告</span>
+        <button class="export-btn" id="export-json" title="导出原始 JSON 数据">JSON</button>
+        <button class="export-btn" id="export-html" title="导出带样式的 HTML 报告">HTML</button>
+        <button class="export-btn" id="export-csv" title="导出 CSV 表格数据">CSV</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-api-status" class="tab-content">
+    <h2>API 配置状态</h2>
+    <div class="api-status-loading" id="api-status-loading">加载中...</div>
+    <table id="api-status-table" class="hidden">
+      <thead>
+        <tr>
+          <th>API</th>
+          <th>Key 已配置</th>
+          <th>Key 后缀</th>
+          <th>测试结果</th>
+        </tr>
+      </thead>
+      <tbody id="api-status-tbody"></tbody>
+    </table>
+    <button id="refresh-api-btn" class="hidden">刷新状态</button>
+
+    <div class="config-section" id="config-section">
+      <h3>🔑 API Key 配置</h3>
+      <p class="config-hint">在此处配置 API Key，保存后立即生效（无需重启服务）。留空则删除对应 Key。</p>
+      <div class="config-form" id="config-form"></div>
+      <div class="config-actions">
+        <button id="save-config-btn">保存配置</button>
+        <span id="config-message" class="config-message hidden"></span>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-chains" class="tab-content">
+    <h2>支持的链</h2>
+    <div class="chain-cards" id="chain-cards"></div>
+  </section>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

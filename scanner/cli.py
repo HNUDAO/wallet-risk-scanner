@@ -271,5 +271,14 @@ def chains():
         console.print(f"  [cyan]{key}[/cyan] - {info['name']} (Chain ID: {info['chain_id']})")
 
 
-if __name__ == "__main__":
-    app()
+@app.command()
+def web(
+    port: int = typer.Option(8000, "--port", "-p", help="Web server port"),
+    host: str = typer.Option("0.0.0.0", "--host", "-h", help="Web server host"),
+):
+    import uvicorn
+    console.print(f"[bold green]Starting Wallet Risk Scanner Web UI...[/bold green]")
+    console.print(f"  URL: http://localhost:{port}")
+    console.print(f"  Host: {host}")
+    console.print()
+    uvicorn.run("web.server:app", host=host, port=port, reload=False)
